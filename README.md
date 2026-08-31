@@ -24,7 +24,7 @@ Public settings live in [`config.js`](config.js):
 
 ```js
 window.ICIC_BOARD_CONFIG = {
-  apiUrl: "https://duj-resource-board.qqqqqqqqqqzz.chatgpt.site/api/status",
+  apiUrl: "https://raw.githubusercontent.com/ICIC-Robot/icic-resource-board/data/status.json",
   refreshMs: 60000,
   staleAfterMs: 15 * 60 * 1000,
   timeZone: "America/New_York"
@@ -46,7 +46,7 @@ Then open `http://127.0.0.1:8080/`.
 ## Data behavior
 
 - The page checks for a new public snapshot once per minute.
-- The HiPerGator publisher currently refreshes the upstream snapshot every five minutes.
+- The HiPerGator publisher writes `status.json` to the repository's `data` branch. The static site reads that file directly from GitHub.
 - A successful snapshot is cached in the viewer's browser so the most recent public data remains visible during a brief API interruption.
 - If neither the API nor a browser cache is available, the page shows clearly labeled preview data.
 
