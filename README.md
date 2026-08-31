@@ -20,7 +20,7 @@ The public snapshot includes usernames, job names and IDs, requested resources, 
 2. Each run requests 1 CPU, 512 MiB (0.5 GiB) of memory, no GPU, and at most two minutes in `hpg-dev`.
 3. The collector reads the `du.j` Slurm queue and QOS, then creates a public `status.json` snapshot.
 4. A repository-scoped GitHub deploy key pushes the snapshot to the `data` branch.
-5. GitHub Pages serves the dashboard from `main`. A visitor's browser checks the snapshot once per minute and caches the last successful copy.
+5. GitHub Pages serves the dashboard from `main`. A visitor's browser checks the snapshot every two minutes and caches the last successful copy.
 
 The publishing job itself appears briefly in the queue because it is an ordinary Slurm job. It does not run continuously and does not reserve a GPU.
 

@@ -29,7 +29,7 @@
       allocationNote: "Slurm allocation, not device utilization",
       footerNote: "Public cached data. No UF credentials are collected. This is an independent group dashboard, not an official UF service.",
       publicSnapshot: "Public snapshot", cachedSnapshot: "Browser cache", previewData: "Preview data", current: "Current",
-      delayed: "Delayed", updatedAgo: "Updated {time} ago · checks every minute", justNow: "just now",
+      delayed: "Delayed", updatedAgo: "Updated {time} ago · checks every 2 minutes", justNow: "just now",
       coresAvailable: "{value} cores available under QOS", memoryAvailable: "{value} GB available under QOS",
       noGpu: "No GPUs allocated", noGpuAllocation: "No GPU allocation", noGpuRequest: "No GPU",
       tasks: "{count} tasks × ", noJobs: "No jobs match this view.", noMembers: "No current allocation owners.",
@@ -60,7 +60,7 @@
       allocationNote: "显示 Slurm 分配量，并非设备实际利用率",
       footerNote: "公开缓存数据，不收集 UF 登录信息。本页面为组内独立看板，并非 UF 官方服务。",
       publicSnapshot: "公开快照", cachedSnapshot: "浏览器缓存", previewData: "预览数据", current: "数据正常",
-      delayed: "数据延迟", updatedAgo: "更新于 {time}前 · 每分钟检查一次", justNow: "刚刚",
+      delayed: "数据延迟", updatedAgo: "更新于 {time}前 · 每 2 分钟检查一次", justNow: "刚刚",
       coresAvailable: "QOS 下尚可申请 {value} 个核心", memoryAvailable: "QOS 下尚可申请 {value} GB",
       noGpu: "当前未分配 GPU", noGpuAllocation: "未分配 GPU", noGpuRequest: "未请求 GPU",
       tasks: "{count} 个任务 × ", noJobs: "当前视图没有匹配的任务。", noMembers: "当前没有资源分配用户。",
@@ -239,7 +239,10 @@
     el("refreshButton").classList.add("loading");
     try {
       if (!API_URL) throw new Error("api-missing");
-      const response = await fetch(`${API_URL}${API_URL.includes("?") ? "&" : "?"}t=${Date.now()}`, { cache: "no-store" });
+      const response = await fetch(`${API_URL}${API_URL.includes("?") ? "&" : "?"}t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { Accept: "application/vnd.github.raw+json" }
+      });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const snapshot = await response.json();
       if (!validateSnapshot(snapshot)) throw new Error("invalid-data");

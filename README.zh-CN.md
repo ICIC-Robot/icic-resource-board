@@ -20,7 +20,7 @@ ICIC 资源看板公开、只读地展示 UF HiPerGator 上 `du.j` 组的共享�
 2. 每次运行申请 1 个 CPU、512 MiB（0.5 GiB）内存，不申请 GPU，在 `hpg-dev` 中最长运行 2 分钟。
 3. 采集器读取 `du.j` 的 Slurm 队列和 QOS，生成公开的 `status.json` 快照。
 4. 仅限本仓库的 GitHub Deploy Key 将快照推送到 `data` 分支。
-5. GitHub Pages 从 `main` 分支发布看板。访问者的浏览器每分钟检查一次快照，并缓存最近一次成功读取的数据。
+5. GitHub Pages 从 `main` 分支发布看板。访问者的浏览器每 2 分钟检查一次快照，并缓存最近一次成功读取的数据。
 
 发布任务本身是普通 Slurm 作业，因此会短暂出现在队列里。它不会常驻运行，也不会占用 GPU。
 
