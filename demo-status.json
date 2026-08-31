@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "visibility": "public",
+  "account": "du.j",
+  "generated_at": "2026-08-30T16:30:51Z",
+  "summary": {
+    "running_jobs": 3,
+    "pending_jobs": 2,
+    "allocated": { "cpu": 72, "memory_gb": 384, "gpu": 8, "gpu_types": { "B200": 8 } },
+    "queued": { "cpu": 64, "memory_gb": 196, "gpu": 8, "gpu_types": { "B200": 8 } },
+    "limits": { "cpu": 192, "memory_gb": 1500, "gpu": 32, "max_submitted_jobs_per_user": 10001, "max_wall": "31-00:00:00" },
+    "gpu_types": { "B200": 8 }
+  },
+  "next_start": {
+    "job_id": "40613714",
+    "name": "example-training-run",
+    "gpu": "8× B200",
+    "start_time": "2026-08-30T22:07:47Z",
+    "end_time": "2026-08-31T22:07:47Z"
+  },
+  "users": [
+    { "user": "example.user", "running_jobs": 3, "pending_jobs": 2, "cpu": 72, "memory_gb": 384, "gpu": 8, "gpu_types": { "B200": 8 } }
+  ],
+  "jobs": [
+    {
+      "job_id": "40613714", "user": "example.user", "name": "example-training-run", "partition": "hpg-b200",
+      "state": "PENDING", "reason": "Resources", "task_count": 1, "cpu": 64, "memory_gb": 196,
+      "gpus": 8, "gpu_types": { "B200": 8 }, "gpu_label": "8× B200",
+      "start_time": "2026-08-30T22:07:47Z", "end_time": "2026-08-31T22:07:47Z"
+    },
+    {
+      "job_id": "40638272", "user": "example.user", "name": "example-evaluation", "partition": "hpg-default",
+      "state": "RUNNING", "reason": "—", "task_count": 1, "cpu": 8, "memory_gb": 64,
+      "gpus": 0, "gpu_types": {}, "gpu_label": "",
+      "start_time": "2026-08-30T15:01:04Z", "end_time": "2026-08-30T19:01:04Z"
+    }
+  ],
+  "stale": true
+}

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0021a5" />
+    <meta name="description" content="A public, read-only view of ICIC shared HiPerGator allocations and queued requests." />
+    <meta property="og:title" content="ICIC Resource Board" />
+    <meta property="og:description" content="Shared HiPerGator allocation and queue visibility for the ICIC team." />
+    <meta property="og:type" content="website" />
+    <title>ICIC Resource Board</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main" data-i18n="skip">Skip to content</a>
+
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="ICIC Resource Board home">
+        <span class="brand-mark" aria-hidden="true">IC</span>
+        <span class="brand-copy">
+          <strong>ICIC Resource Board</strong>
+          <small>UF HiPerGator · du.j</small>
+        </span>
+      </a>
+      <div class="header-actions">
+        <span class="privacy-pill"><i></i><span data-i18n="publicReadOnly">Public · read only</span></span>
+        <button class="refresh-button" id="refreshButton" type="button">
+          <span class="refresh-icon" aria-hidden="true">↻</span>
+          <span data-i18n="refresh">Refresh</span>
+        </button>
+        <div class="language-switcher" role="group" aria-label="Language">
+          <button type="button" data-lang="en" aria-pressed="true">EN</button>
+          <button type="button" data-lang="zh" aria-pressed="false">中文</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow" data-i18n="eyebrow">SHARED COMPUTE, CLEARLY SEEN</p>
+          <h1><span data-i18n="heroLine1">See the workload.</span><br /><em data-i18n="heroLine2">Plan the next move.</em></h1>
+          <p data-i18n="heroDescription">A live, cached view of ICIC group allocations, queued requests, and shared QOS headroom on UF HiPerGator.</p>
+        </div>
+        <aside class="sync-card" aria-live="polite">
+          <span data-i18n="lastSync">Last synchronized</span>
+          <strong id="lastSync">—</strong>
+          <small id="syncDetail">—</small>
+        </aside>
+      </section>
+
+      <div id="notice" class="notice" role="status" hidden></div>
+
+      <section class="section-block" aria-labelledby="overviewTitle">
+        <div class="section-title-row">
+          <div>
+            <p class="eyebrow" data-i18n="overviewEyebrow">CURRENT ALLOCATION</p>
+            <h2 id="overviewTitle" data-i18n="overviewTitle">Resource overview</h2>
+          </div>
+          <span class="source-badge" id="sourceBadge">—</span>
+        </div>
+
+        <div class="metrics-grid">
+          <article class="metric-card metric-blue">
+            <div class="metric-heading"><span class="metric-symbol">C</span><span data-i18n="cpuCores">CPU cores</span></div>
+            <div class="metric-value"><strong id="cpuUsed">—</strong><span>/ <b id="cpuLimit">—</b></span></div>
+            <div class="meter" role="progressbar" aria-label="CPU allocation"><i id="cpuMeter"></i></div>
+            <p id="cpuDetail">—</p>
+          </article>
+          <article class="metric-card metric-violet">
+            <div class="metric-heading"><span class="metric-symbol">M</span><span data-i18n="memory">Memory</span></div>
+            <div class="metric-value"><strong id="memoryUsed">—</strong><span>/ <b id="memoryLimit">—</b> GB</span></div>
+            <div class="meter" role="progressbar" aria-label="Memory allocation"><i id="memoryMeter"></i></div>
+            <p id="memoryDetail">—</p>
+          </article>
+          <article class="metric-card metric-orange">
+            <div class="metric-heading"><span class="metric-symbol">G</span><span data-i18n="gpus">GPUs</span></div>
+            <div class="metric-value"><strong id="gpuUsed">—</strong><span>/ <b id="gpuLimit">—</b></span></div>
+            <div class="meter" role="progressbar" aria-label="GPU allocation"><i id="gpuMeter"></i></div>
+            <p id="gpuDetail">—</p>
+          </article>
+          <article class="metric-card metric-green">
+            <div class="metric-heading"><span class="metric-symbol">J</span><span data-i18n="activeWork">Active work</span></div>
+            <div class="metric-value"><strong id="runningCount">—</strong><span data-i18n="running">running</span></div>
+            <div class="job-breakdown"><span><i></i><span data-i18n="running">Running</span></span><b><span id="pendingCount">—</span> <span data-i18n="pendingLower">pending</span></b></div>
+            <p data-i18n="arrayNote">Array elements are counted as individual jobs.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="nextStartSection" class="next-start" hidden>
+        <p class="next-label" data-i18n="nextReserved">NEXT EXPECTED START</p>
+        <div class="next-grid">
+          <div>
+            <span class="job-code" id="nextJobId">—</span>
+            <h2 id="nextJobName">—</h2>
+            <p id="nextJobRequest">—</p>
+          </div>
+          <div class="countdown">
+            <span data-i18n="startsIn">Starts in</span>
+            <strong id="countdown">—</strong>
+          </div>
+          <div class="time-window">
+            <span><small data-i18n="estimatedStart">Estimated start</small><strong id="nextStartTime">—</strong></span>
+            <i aria-hidden="true"></i>
+            <span><small data-i18n="expectedEnd">Expected end</small><strong id="nextEndTime">—</strong></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="capacity-grid">
+        <article class="panel">
+          <p class="eyebrow" data-i18n="queuedEyebrow">QUEUED REQUESTS</p>
+          <h2 data-i18n="queuedTitle">Demand waiting in line</h2>
+          <div class="capacity-numbers">
+            <span><strong id="queuedCpu">—</strong><small data-i18n="cpuCores">CPU cores</small></span>
+            <span><strong id="queuedMemory">—</strong><small data-i18n="gbMemory">GB memory</small></span>
+            <span><strong id="queuedGpu">—</strong><small data-i18n="gpus">GPUs</small></span>
+          </div>
+          <p class="fine-print" data-i18n="queuedNote">Pending totals describe requested capacity, not resources currently consumed.</p>
+        </article>
+        <article class="panel policy-panel">
+          <p class="eyebrow" data-i18n="qosEyebrow">QOS ENVELOPE</p>
+          <h2 data-i18n="qosTitle">Shared request ceiling</h2>
+          <dl>
+            <div><dt data-i18n="groupTres">Group TRES</dt><dd id="groupTres">—</dd></div>
+            <div><dt data-i18n="maxWall">Maximum wall time</dt><dd id="maxWall">—</dd></div>
+            <div><dt data-i18n="jobsPerUser">Submitted jobs / user</dt><dd id="jobsPerUser">—</dd></div>
+          </dl>
+          <p class="fine-print" data-i18n="qosNote">Limits reflect the reported Slurm QOS. Partition and cluster availability may add constraints.</p>
+        </article>
+      </section>
+
+      <section class="section-block jobs-section" aria-labelledby="jobsTitle">
+        <div class="section-title-row jobs-heading">
+          <div>
+            <p class="eyebrow" data-i18n="queueEyebrow">LIVE QUEUE</p>
+            <h2 id="jobsTitle" data-i18n="groupJobs">Group jobs</h2>
+          </div>
+          <div class="job-tools">
+            <label class="search-box">
+              <span aria-hidden="true">⌕</span>
+              <input id="jobSearch" type="search" data-i18n-placeholder="searchPlaceholder" placeholder="Search job or owner" />
+            </label>
+            <div class="filters" role="group" aria-label="Filter jobs">
+              <button type="button" data-filter="ALL" class="active" data-i18n="all">All</button>
+              <button type="button" data-filter="RUNNING" data-i18n="running">Running</button>
+              <button type="button" data-filter="PENDING" data-i18n="pending">Pending</button>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th data-i18n="job">Job</th><th data-i18n="owner">Owner</th><th data-i18n="status">Status</th>
+              <th data-i18n="request">Request</th><th data-i18n="start">Start</th><th data-i18n="expectedEnd">Expected end</th><th data-i18n="detail">Detail</th>
+            </tr></thead>
+            <tbody id="jobsBody"><tr><td colspan="7" class="empty-cell" data-i18n="loading">Loading resource data…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section-block members-section" aria-labelledby="membersTitle">
+        <div class="section-title-row">
+          <div><p class="eyebrow" data-i18n="membersEyebrow">BY MEMBER</p><h2 id="membersTitle" data-i18n="allocationOwners">Current allocation owners</h2></div>
+          <p class="section-note" data-i18n="allocationNote">Slurm allocation, not device utilization</p>
+        </div>
+        <div class="members-grid" id="membersGrid"></div>
+      </section>
+    </main>
+
+    <footer>
+      <strong>ICIC Resource Board</strong>
+      <p data-i18n="footerNote">Public cached data. No UF credentials are collected. This is an independent group dashboard, not an official UF service.</p>
+    </footer>
+
+    <noscript>This page requires JavaScript to display the current resource snapshot.</noscript>
+    <script src="./config.js"></script>
+    <script src="./assets/app.js"></script>
+  </body>
+</html>
