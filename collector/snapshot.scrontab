@@ -1,0 +1,25 @@
+# Publish a bounded resource snapshot every five minutes using a fresh disposable checkout.
+#SCRON --account=du.j
+#SCRON --qos=du.j
+#SCRON --partition=hpg-dev
+#SCRON --time=00:05:00
+#SCRON --cpus-per-task=1
+#SCRON --mem=512M
+#SCRON --job-name=duj-github-snapshot
+#SCRON --chdir=/blue/du.j/jinjiaguo/duj-github-snapshot
+#SCRON --output=/blue/du.j/jinjiaguo/duj-github-snapshot/logs/github-publish-%j.log
+#SCRON --export=NIL
+*/5 * * * * /usr/bin/env HOME=/home/jinjiaguo PATH=/opt/slurm/bin:/usr/bin:/bin /usr/bin/python3 /blue/du.j/jinjiaguo/duj-github-snapshot/publish_github_snapshot.py
+
+# Daily per-member /blue/du.j storage estimate (fallback for members who have not run report_storage.sh --install).
+#SCRON --account=du.j
+#SCRON --qos=du.j
+#SCRON --partition=hpg-default
+#SCRON --time=03:00:00
+#SCRON --cpus-per-task=4
+#SCRON --mem=2G
+#SCRON --job-name=duj-storage-scan
+#SCRON --chdir=/blue/du.j/jinjiaguo/duj-github-snapshot
+#SCRON --output=/blue/du.j/jinjiaguo/duj-github-snapshot/logs/storage-scan-%j.log
+#SCRON --export=NIL
+30 4 * * * /usr/bin/env HOME=/home/jinjiaguo PATH=/opt/slurm/bin:/usr/bin:/bin /usr/bin/python3 /blue/du.j/jinjiaguo/duj-github-snapshot/scan_storage.py
