@@ -23,6 +23,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+      - name: Version asset URLs
+        # New HTML must never pair with a browser-cached old app.js/styles.css.
+        run: sed -i "s/__BUILD__/${GITHUB_SHA::8}/g" index.html
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
