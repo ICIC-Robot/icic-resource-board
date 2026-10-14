@@ -127,6 +127,13 @@ def self_reports():
             reports[result[0]] = result[1]
     return reports
 
+def own_quota():
+    """The publisher runs as its owner, so it can read that one member's exact quota directly."""
+    user = pwd.getpwuid(os.getuid()).pw_name
+    tokens = run(["lfs", "quota", "-q", "-u", user, STORAGE_ROOT]).replace("*", "").split()
+    fields = tokens[tokens.index(STORAGE_ROOT) + 1:]
+    return user, {"kbytes": int(fields[0]), "files": int(fields[4]), "measured_at": timestamp(time.time())}
+
 def storage():
     project = run(["lfs", "project", "-d", STORAGE_ROOT]).split()[0]
     tokens = run(["lfs", "quota", "-q", "-p", project, STORAGE_ROOT]).replace("*", "").split()
@@ -145,7 +152,10 @@ def storage():
             elif member["kbytes"] is not None:
                 member["kbytes"] += entry["kbytes"]
                 member["complete"] = member["complete"] and entry["complete"]
-    for user, report in self_reports().items():
+    reports = self_reports()
+    user, report = own_quota()
+    reports[user] = report
+    for user, report in reports.items():
         members[user] = {"user": user, "source": "quota", "complete": True, **report}
     attributed = sum(m["kbytes"] or 0 for m in members.values())
     rows = []

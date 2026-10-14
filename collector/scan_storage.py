@@ -38,8 +38,10 @@ def du(path):
 
 
 def self_reporters():
-    """Members whose self-report the publisher will accept; their exact quota makes a scan redundant."""
-    return {result[0] for result in map(read_report, REPORTS.glob("*.json")) if result}
+    """Members with exact quota data (accepted self-reports, plus the publisher's owner, whose
+    quota the publisher reads directly); scanning them would be redundant."""
+    reporters = {result[0] for result in map(read_report, REPORTS.glob("*.json")) if result}
+    return reporters | {pwd.getpwuid(os.getuid()).pw_name}
 
 
 def scan_member(folder, pool):

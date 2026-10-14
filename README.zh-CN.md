@@ -31,6 +31,7 @@ Lustre 只允许每个用户查看自己的配额，因此成员存储用量有�
 | 来源 | 方式 | 显示为 |
 | --- | --- | --- |
 | 组总量 | 每 5 分钟对 `/blue/du.j` 项目执行 `lfs quota -p` | 精确 |
+| 发布器所有者 | 发布器以 jinjiaguo 身份运行，每 5 分钟直接读取该账户的 `lfs quota -u` | **精确** |
 | 成员自报（自愿） | 成员自己的 scrontab 每 3 小时运行 `report_storage.sh` 的私有副本（位于 `~/.local/bin`），将本人的 `lfs quota -u` 总量写入 `storage-reports/<uid>.json` | **精确** |
 | 每日扫描（兜底） | `scan_storage.py` 每天 04:30 对每位成员的顶层目录运行 `du`（`hpg-default`，4 CPU，2 GiB，≤ 3 小时） | **扫描**；部分子目录组内不可读时为 **≥ 部分扫描**；整个目录不可读时为 **目录不可读** |
 

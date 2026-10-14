@@ -31,6 +31,7 @@ Lustre lets each user read only their own quota, so per-member storage comes fro
 | Source | How | Shown as |
 | --- | --- | --- |
 | Group total | `lfs quota -p` on the `/blue/du.j` project, every five minutes | exact |
+| Publisher owner | the publisher runs as jinjiaguo, so it reads that account's `lfs quota -u` directly every five minutes | **exact** |
 | Self-report (opt-in) | the member's own scrontab runs a private copy of `report_storage.sh` (in `~/.local/bin`) every 3 hours and writes their own `lfs quota -u` total to `storage-reports/<uid>.json` | **exact** |
 | Daily scan (fallback) | `scan_storage.py` runs `du` over each member's top-level folder at 04:30 (`hpg-default`, 4 CPU, 2 GiB, ≤ 3 h) | **scan**, or **≥ partial scan** when some subfolders are unreadable to the group, or **folder not readable** |
 
