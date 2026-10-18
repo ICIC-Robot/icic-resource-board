@@ -292,8 +292,20 @@ def optional(name, function):
         print(name.upper() + "_ERROR", type(error).__name__, error, file=sys.stderr)
         return None
 
+def run_retry(args, tries=2, timeout=60, pause=10):
+    """A Slurm query that the controller may answer slowly (the 25 s default timed out on 2026-10-17 while the
+    controller was busy); the job's five-minute limit leaves room for two attempts of one minute."""
+    for attempt in range(tries):
+        try:
+            return run(args, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            if attempt == tries - 1:
+                raise
+            print("RETRY", " ".join(args), file=sys.stderr)
+            time.sleep(pause)
+
 def collect():
-    raw = json.loads(run(["squeue", "-A", "du.j", "--json"]))
+    raw = json.loads(run_retry(["squeue", "-A", "du.j", "--json"]))
     if raw.get("errors"):
         raise RuntimeError("Slurm reported queue errors")
     qos = run(["sacctmgr", "-nP", "show", "qos", "du.j", "format=Name,GrpTRES,MaxWall,MaxJobsPU,MaxSubmitJobsPU"]).strip().splitlines()

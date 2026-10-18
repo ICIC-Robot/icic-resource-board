@@ -23,3 +23,18 @@
 #SCRON --output=/blue/du.j/jinjiaguo/duj-github-snapshot/logs/storage-scan-%j.log
 #SCRON --export=NIL
 30 4 * * * /usr/bin/env HOME=/home/jinjiaguo PATH=/opt/slurm/bin:/usr/bin:/bin /usr/bin/python3 /blue/du.j/jinjiaguo/duj-github-snapshot/scan_storage.py
+
+# Watchdog: a scrontab job that Slurm held after a failed user-environment retrieval never runs again by itself and
+# cannot be released with scontrol; re-registering the scrontab replaces it (release_held.sh). Appends to one log.
+#SCRON --account=du.j
+#SCRON --qos=du.j
+#SCRON --partition=hpg-dev
+#SCRON --time=00:02:00
+#SCRON --cpus-per-task=1
+#SCRON --mem=256M
+#SCRON --job-name=duj-snapshot-watchdog
+#SCRON --chdir=/blue/du.j/jinjiaguo/duj-github-snapshot
+#SCRON --output=/blue/du.j/jinjiaguo/duj-github-snapshot/logs/watchdog.log
+#SCRON --open-mode=append
+#SCRON --export=NIL
+7,37 * * * * /usr/bin/env HOME=/home/jinjiaguo PATH=/opt/slurm/bin:/usr/bin:/bin /bin/bash /blue/du.j/jinjiaguo/duj-github-snapshot/release_held.sh
