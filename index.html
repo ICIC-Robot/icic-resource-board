@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0021a5" />
-    <meta name="description" content="A public, read-only view of ICIC shared HiPerGator compute allocations, queued requests, and /blue storage usage." />
+    <meta name="theme-color" content="#07080c" />
+    <script>try { document.documentElement.dataset.theme = localStorage.getItem("icic-resource-board:theme") || "dark"; } catch { document.documentElement.dataset.theme = "dark"; }</script>
+    <meta name="description" content="A public, read-only view of the ICIC group's HiPerGator allocation: what is in use, what is free, and how soon a job can start." />
     <meta property="og:title" content="ICIC Resource Board" />
     <meta property="og:description" content="Shared HiPerGator compute and storage visibility for the ICIC team." />
     <meta property="og:type" content="website" />
@@ -13,217 +14,231 @@
   </head>
   <body>
     <a class="skip-link" href="#main" data-i18n="skip">Skip to content</a>
+    <div class="ambient" aria-hidden="true"><i></i><i></i><i></i></div>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-now" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></symbol>
+      <symbol id="i-quota" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3" /><path d="M8 15v-3M12 15V9M16 15v-5" /></symbol>
+      <symbol id="i-queue" viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h9" /></symbol>
+      <symbol id="i-cluster" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6" rx="2" /><rect x="4" y="14" width="16" height="6" rx="2" /><path d="M8 7h.01M8 17h.01" /></symbol>
+      <symbol id="i-wait" viewBox="0 0 24 24"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9" /></symbol>
+      <symbol id="i-plan" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10" /></symbol>
+      <symbol id="i-members" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2" /><path d="M3.5 19c.8-3 3-4.6 5.5-4.6s4.7 1.6 5.5 4.6" /><circle cx="17" cy="10" r="2.4" /><path d="M16 14.6c2.2 0 3.8 1.3 4.5 3.6" /></symbol>
+      <symbol id="i-jobs" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3" /><path d="m8 10 2.5 2L8 14M13 14h3" /></symbol>
+      <symbol id="i-history" viewBox="0 0 24 24"><path d="M4 18h16M6 15l4-5 3 3 5-6" /></symbol>
+      <symbol id="i-storage" viewBox="0 0 24 24"><ellipse cx="12" cy="6.5" rx="7" ry="2.5" /><path d="M5 6.5v11c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-11M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5" /></symbol>
+      <symbol id="i-about" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><path d="M12 11v5M12 8h.01" /></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" /></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></symbol>
+    </svg>
 
-    <header class="site-header">
-      <a class="brand" href="./" aria-label="ICIC Resource Board home">
+    <nav class="sidebar" id="sidebar" aria-label="Sections">
+      <a class="brand" href="#available">
         <span class="brand-mark" aria-hidden="true">IC</span>
-        <span class="brand-copy">
-          <strong>ICIC Resource Board</strong>
-          <small>UF HiPerGator · du.j</small>
-        </span>
+        <span><strong>ICIC Resource Board</strong><small>HiPerGator · du.j</small></span>
       </a>
-      <div class="sync" id="sync" aria-live="polite">
-        <i class="sync-dot"></i>
-        <span><strong id="syncAge">—</strong><small id="syncDetail">—</small></span>
+      <div class="nav-group">
+        <button type="button" aria-expanded="true"><span data-i18n="navNow">Right now</span><svg class="icon"><use href="#i-chevron" /></svg></button>
+        <ul>
+          <li><a href="#available"><svg class="icon"><use href="#i-now" /></svg><span data-i18n="navAvailable">Available now</span></a></li>
+          <li><a href="#quota"><svg class="icon"><use href="#i-quota" /></svg><span data-i18n="navQuota">Group quota</span></a></li>
+          <li><a href="#queue"><svg class="icon"><use href="#i-queue" /></svg><span data-i18n="navQueue">Queue</span><span class="badge" id="navQueueBadge" hidden></span></a></li>
+        </ul>
       </div>
-      <div class="header-actions">
-        <button class="icon-button" id="refreshButton" type="button" data-i18n-title="refresh" title="Refresh">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" /></svg>
-          <span class="sr-only" data-i18n="refresh">Refresh</span>
-        </button>
+      <div class="nav-group">
+        <button type="button" aria-expanded="true"><span data-i18n="navCluster">Cluster</span><svg class="icon"><use href="#i-chevron" /></svg></button>
+        <ul>
+          <li><a href="#cluster"><svg class="icon"><use href="#i-cluster" /></svg><span data-i18n="navPartitions">Partitions</span></a></li>
+          <li><a href="#wait"><svg class="icon"><use href="#i-wait" /></svg><span data-i18n="navWait">How soon can I start</span></a></li>
+          <li><a href="#planner"><svg class="icon"><use href="#i-plan" /></svg><span data-i18n="navPlanner">Check a request</span></a></li>
+        </ul>
+      </div>
+      <div class="nav-group">
+        <button type="button" aria-expanded="true"><span data-i18n="navGroup">Group</span><svg class="icon"><use href="#i-chevron" /></svg></button>
+        <ul>
+          <li><a href="#members"><svg class="icon"><use href="#i-members" /></svg><span data-i18n="navMembers">Members</span></a></li>
+          <li><a href="#jobs"><svg class="icon"><use href="#i-jobs" /></svg><span data-i18n="navJobs">Jobs</span></a></li>
+          <li><a href="#history"><svg class="icon"><use href="#i-history" /></svg><span data-i18n="navHistory">Last 7 days</span></a></li>
+          <li><a href="#storage"><svg class="icon"><use href="#i-storage" /></svg><span data-i18n="navStorage">Storage</span></a></li>
+        </ul>
+      </div>
+      <div class="nav-group">
+        <button type="button" aria-expanded="true"><span data-i18n="navInfo">Info</span><svg class="icon"><use href="#i-chevron" /></svg></button>
+        <ul>
+          <li><a href="#about"><svg class="icon"><use href="#i-about" /></svg><span data-i18n="navAbout">Data &amp; definitions</span></a></li>
+        </ul>
+      </div>
+      <div class="sidebar-foot">
+        <div class="segmented" role="group" aria-label="Theme">
+          <button type="button" data-theme-set="dark">◐ Dark</button>
+          <button type="button" data-theme-set="light">○ Light</button>
+        </div>
         <div class="segmented" role="group" aria-label="Language">
-          <button type="button" data-lang="en" aria-pressed="true">EN</button>
           <button type="button" data-lang="zh" aria-pressed="false">中文</button>
+          <button type="button" data-lang="en" aria-pressed="true">EN</button>
         </div>
+        <span id="sourceBadge" class="badge">—</span>
       </div>
-    </header>
+    </nav>
 
-    <main id="main">
-      <div id="notice" class="notice" role="status" hidden></div>
+    <div class="shell">
+      <div class="topbar">
+        <button class="menu-button" id="menuButton" type="button" aria-controls="sidebar" aria-expanded="false"><svg class="icon"><use href="#i-menu" /></svg><span class="sr-only">Menu</span></button>
+        <div class="sync" id="sync" aria-live="polite">
+          <i class="sync-dot"></i>
+          <span><strong id="syncAge">—</strong> <small id="syncDetail">—</small></span>
+        </div>
+        <span class="spacer"></span>
+        <button class="icon-button" id="refreshButton" type="button" data-i18n-title="refresh" title="Refresh"><svg class="icon"><use href="#i-refresh" /></svg><span class="sr-only" data-i18n="refresh">Refresh</span></button>
+      </div>
 
-      <section class="kpis" aria-label="Resource overview">
-        <article class="kpi" id="kpiCpu"></article>
-        <article class="kpi" id="kpiMemory"></article>
-        <article class="kpi" id="kpiGpu"></article>
-        <article class="kpi" id="kpiStorage"></article>
-      </section>
-      <div class="legend" id="legend" aria-hidden="true"></div>
+      <main id="main">
+        <div id="notice" class="notice" role="status" hidden></div>
 
-      <div class="layout">
-        <section class="card members-card" aria-labelledby="membersTitle">
-          <header class="card-head">
-            <div>
-              <h2 id="membersTitle" data-i18n="membersTitle">Members</h2>
-              <p data-i18n="membersNote">Compute is current Slurm allocation; storage is usage on /blue/du.j. Click a member to filter jobs.</p>
-            </div>
+        <section class="section" id="available" aria-labelledby="availableTitle">
+          <header class="sec-head">
+            <h1 id="availableTitle" data-i18n="availableTitle">What you can start now</h1>
+            <button type="button" class="info" data-tip="availableNote" aria-label="Info">i</button>
           </header>
-          <div class="table-wrap">
-            <table class="members-table">
-              <thead><tr>
-                <th data-sort="user" data-i18n="member">Member</th>
-                <th data-sort="jobs" class="num" data-i18n="jobs">Jobs</th>
-                <th data-sort="cpu" class="num">CPU</th>
-                <th data-sort="memory_gb" class="num" data-i18n="memoryShort">Mem</th>
-                <th data-sort="gpu" class="num">GPU</th>
-                <th data-sort="storage" class="storage-col" data-i18n="storage">Storage</th>
-              </tr></thead>
-              <tbody id="membersBody"><tr><td colspan="6" class="empty" data-i18n="loading">Loading…</td></tr></tbody>
-            </table>
+          <div class="hero" id="hero"></div>
+          <div class="grid cols-4" id="availableTiles"></div>
+        </section>
+
+        <section class="section" id="quota" aria-labelledby="quotaTitle">
+          <header class="sec-head"><h2 id="quotaTitle" data-i18n="quotaTitle">Group quota</h2><button type="button" class="info" data-tip="quotaSub" aria-label="Info">i</button></header>
+          <div class="card" id="mainQuota"></div>
+          <div class="card" id="burstQuota"></div>
+        </section>
+
+        <section class="section" id="queue" aria-labelledby="queueTitle">
+          <header class="sec-head"><h2 id="queueTitle" data-i18n="queueTitle">Queue</h2><button type="button" class="info" data-tip="queueSub" aria-label="Info">i</button></header>
+          <div class="grid cols-4" id="queueCards"></div>
+          <div class="arrays" id="arrayList"></div>
+        </section>
+
+        <section class="section" id="cluster" aria-labelledby="clusterTitle">
+          <header class="sec-head"><h2 id="clusterTitle" data-i18n="clusterTitle">Partitions</h2><button type="button" class="info" data-tip="clusterSub" aria-label="Info">i</button></header>
+          <div class="grid cols-4" id="partitions"></div>
+        </section>
+
+        <section class="section" id="wait" aria-labelledby="waitTitle">
+          <header class="sec-head"><h2 id="waitTitle" data-i18n="waitTitle">How soon can I start?</h2><button type="button" class="info" data-tip="waitSub" aria-label="Info">i</button></header>
+          <div class="wait-list" id="waitList"></div>
+        </section>
+
+        <section class="section" id="planner" aria-labelledby="plannerTitle">
+          <header class="sec-head"><h2 id="plannerTitle" data-i18n="plannerTitle">Check a request</h2><button type="button" class="info" data-tip="plannerSub" aria-label="Info">i</button></header>
+          <div class="card">
+            <form class="planner-form" id="plannerForm" autocomplete="off">
+              <label><span data-i18n="planPartition">Partition</span><select id="planType"></select></label>
+              <label><span data-i18n="gpuCount">GPUs</span><input id="planGpu" type="number" min="0" max="64" step="1" value="1" /></label>
+              <label><span>CPU</span><input id="planCpu" type="number" min="1" max="512" step="1" value="8" /></label>
+              <label><span data-i18n="memGb">Memory (GB)</span><input id="planMem" type="number" min="1" max="4096" step="1" value="64" /></label>
+              <label><span data-i18n="hours">Time (h)</span><input id="planHours" type="number" min="1" max="744" step="1" value="24" /></label>
+            </form>
+            <div class="verdict" id="planVerdict"></div>
+            <ul class="checks" id="planChecks"></ul>
+            <div class="forecast">
+              <p class="label" data-i18n="forecastTitle">Group GPUs over the next 24 h if running jobs use their full time limit</p>
+              <div class="chart" id="forecastChart"></div>
+            </div>
           </div>
         </section>
 
-        <aside class="side">
-          <section class="card next-card" id="nextCard" hidden>
-            <p class="label" data-i18n="nextStart">Next expected start</p>
-            <div class="next-main">
-              <div><strong id="nextName">—</strong><small id="nextMeta">—</small></div>
-              <span class="countdown" id="countdown">—</span>
+        <section class="section" id="members" aria-labelledby="membersTitle">
+          <header class="sec-head"><h2 id="membersTitle" data-i18n="membersTitle">Members</h2><button type="button" class="info" data-tip="membersSub" aria-label="Info">i</button></header>
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th data-sort="user" data-i18n="member">Member</th>
+                  <th data-sort="jobs" class="num" data-i18n="jobs">Jobs</th>
+                  <th data-sort="gpu" class="num">GPU</th>
+                  <th data-sort="cpu" class="num">CPU</th>
+                  <th data-sort="memory_gb" class="num" data-i18n="memoryShort">Memory</th>
+                  <th data-sort="burst" class="num">Burst CPU</th>
+                  <th data-sort="storage" class="num" data-i18n="storage">Storage</th>
+                </tr></thead>
+                <tbody id="membersBody"><tr><td colspan="7" class="empty" data-i18n="loading">Loading…</td></tr></tbody>
+              </table>
             </div>
-            <div class="next-window"><span id="nextStart">—</span><i></i><span id="nextEnd">—</span></div>
-          </section>
-
-          <section class="card">
-            <p class="label" data-i18n="queuedTitle">Waiting in queue</p>
-            <div class="stat-row">
-              <span><strong id="queuedCpu">—</strong><small>CPU</small></span>
-              <span><strong id="queuedMemory">—</strong><small data-i18n="gbMemory">GB mem</small></span>
-              <span><strong id="queuedGpu">—</strong><small>GPU</small></span>
-            </div>
-            <p class="fine" data-i18n="queuedNote">Requested by pending jobs, not yet allocated.</p>
-          </section>
-
-          <section class="card">
-            <p class="label" data-i18n="qosTitle">QOS limits</p>
-            <dl class="kv">
-              <div><dt data-i18n="groupTres">Group TRES</dt><dd id="groupTres">—</dd></div>
-              <div><dt data-i18n="maxWall">Max wall time</dt><dd id="maxWall">—</dd></div>
-              <div><dt data-i18n="jobsPerUser">Submitted jobs / user</dt><dd id="jobsPerUser">—</dd></div>
-            </dl>
-            <p class="fine" data-i18n="qosNote">Partition policy and cluster availability can add further constraints.</p>
-          </section>
-        </aside>
-      </div>
-
-
-
-      <div class="duo">
-        <section class="card" aria-labelledby="clusterTitle">
-          <header class="card-head">
-            <div>
-              <h2 id="clusterTitle" data-i18n="clusterTitle">Cluster right now</h2>
-              <p data-i18n="clusterNote">Physically free capacity on HiPerGator for everyone, independent of our QOS.</p>
-            </div>
-          </header>
-          <div class="partitions" id="partitions"></div>
+          </div>
         </section>
 
-        <section class="card planner" aria-labelledby="plannerTitle">
-          <header class="card-head">
-            <div>
-              <h2 id="plannerTitle" data-i18n="plannerTitle">Can my job start?</h2>
-              <p data-i18n="plannerNote">Checks a request against the QOS ceiling, group headroom, and free cluster nodes.</p>
+        <section class="section" id="jobs" aria-labelledby="jobsTitle">
+          <header class="sec-head"><h2 id="jobsTitle" data-i18n="jobsTitle">Jobs</h2><span class="summary" id="jobsSummary">—</span></header>
+          <div class="card">
+            <div class="card-head">
+              <div class="segmented" role="group" aria-label="Filter jobs" id="jobFilters">
+                <button type="button" data-filter="ALL" class="active" data-i18n="all">All</button>
+                <button type="button" data-filter="RUNNING" data-i18n="running">Running</button>
+                <button type="button" data-filter="WAITING" data-i18n="waiting">Waiting</button>
+                <button type="button" data-filter="THROTTLED" data-i18n="throttledShort">Array throttle</button>
+                <button type="button" data-filter="OTHER" data-i18n="otherShort">Scheduled / other</button>
+              </div>
+              <label class="search"><svg class="icon"><use href="#i-search" /></svg><input id="jobSearch" type="search" data-i18n-placeholder="searchPlaceholder" placeholder="Search job, member, ID" /></label>
             </div>
-          </header>
-          <form class="planner-form" id="plannerForm" autocomplete="off">
-            <label><span data-i18n="gpuType">GPU type</span><select id="planType"></select></label>
-            <label><span data-i18n="gpuCount">GPUs</span><input id="planGpu" type="number" min="0" max="64" step="1" value="1" /></label>
-            <label><span>CPU</span><input id="planCpu" type="number" min="1" max="512" step="1" value="8" /></label>
-            <label><span data-i18n="memGb">Memory (GB)</span><input id="planMem" type="number" min="1" max="4096" step="1" value="64" /></label>
-            <label><span data-i18n="hours">Time (h)</span><input id="planHours" type="number" min="1" max="744" step="1" value="24" /></label>
-          </form>
-          <div class="verdict" id="planVerdict"></div>
-          <ul class="checks" id="planChecks"></ul>
-          <div class="forecast">
-            <p class="label" data-i18n="forecastTitle">Group GPUs, next 24 h, if running jobs use their full time</p>
-            <div class="chart" id="forecastChart"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th data-i18n="job">Job</th><th data-i18n="member">Member</th><th data-i18n="status">Status</th>
+                  <th data-i18n="request">Request (each)</th><th data-i18n="timing">Time</th>
+                </tr></thead>
+                <tbody id="jobsBody"><tr><td colspan="5" class="empty" data-i18n="loading">Loading…</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </section>
-      </div>
 
-      <section class="card jobs-card" aria-labelledby="jobsTitle">
-        <header class="card-head">
-          <div>
-            <h2 id="jobsTitle" data-i18n="jobsTitle">Jobs</h2>
-            <p id="jobsSummary">—</p>
-          </div>
-          <div class="tools">
-            <label class="search">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-              <input id="jobSearch" type="search" data-i18n-placeholder="searchPlaceholder" placeholder="Search job, member, ID" />
-            </label>
-            <div class="segmented" role="group" aria-label="Filter jobs">
-              <button type="button" data-filter="ALL" class="active" data-i18n="all">All</button>
-              <button type="button" data-filter="RUNNING" data-i18n="running">Running</button>
-              <button type="button" data-filter="PENDING" data-i18n="pending">Pending</button>
+        <section class="section" id="history" aria-labelledby="historyTitle">
+          <header class="sec-head"><h2 id="historyTitle" data-i18n="historyTitle">Last 7 days</h2><button type="button" class="info" data-tip="historyNote" aria-label="Info">i</button></header>
+          <div class="card">
+            <div class="card-head">
+              <div class="segmented" role="group" aria-label="Resource">
+                <button type="button" data-metric="gpu" class="active">GPU</button>
+                <button type="button" data-metric="cpu">CPU</button>
+              </div>
+            </div>
+            <div class="grid cols-2">
+              <figure><figcaption id="inUseTitle">—</figcaption><div class="chart" id="inUseChart"></div></figure>
+              <figure><figcaption id="dailyTitle">—</figcaption><div class="chart" id="dailyChart"></div></figure>
+            </div>
+            <div class="table-wrap" style="margin-top:18px">
+              <table>
+                <thead><tr>
+                  <th data-i18n="member">Member</th><th class="num">GPU·h</th><th class="num">CPU·h</th>
+                  <th class="num" data-i18n="finished">Finished</th><th class="num" data-i18n="failedRate">Failed</th>
+                </tr></thead>
+                <tbody id="usageBody"></tbody>
+              </table>
             </div>
           </div>
-        </header>
-        <div class="table-wrap">
-          <table class="jobs-table">
-            <thead><tr>
-              <th data-i18n="job">Job</th><th data-i18n="member">Member</th><th data-i18n="status">Status</th>
-              <th data-i18n="request">Request (each)</th><th data-i18n="timing">Timing</th><th data-i18n="detail">Detail</th>
-            </tr></thead>
-            <tbody id="jobsBody"><tr><td colspan="6" class="empty" data-i18n="loading">Loading…</td></tr></tbody>
-          </table>
-        </div>
-      </section>
-      <section class="card history-card" aria-labelledby="historyTitle">
-        <header class="card-head">
-          <div>
-            <h2 id="historyTitle" data-i18n="historyTitle">Last 7 days</h2>
-            <p data-i18n="historyNote">From Slurm accounting, including finished jobs. Times in Eastern time.</p>
-          </div>
-          <div class="segmented" role="group" aria-label="Resource">
-            <button type="button" data-metric="gpu" class="active">GPU</button>
-            <button type="button" data-metric="cpu">CPU</button>
-          </div>
-        </header>
-        <div class="history-grid">
-          <figure>
-            <figcaption id="inUseTitle">—</figcaption>
-            <div class="chart" id="inUseChart"></div>
-          </figure>
-          <figure>
-            <figcaption id="dailyTitle">—</figcaption>
-            <div class="chart" id="dailyChart"></div>
-          </figure>
-        </div>
-        <div class="table-wrap">
-          <table class="usage-table">
-            <thead><tr>
-              <th data-i18n="member">Member</th><th class="num">GPU·h</th><th class="num">CPU·h</th>
-              <th class="num" data-i18n="finished">Finished jobs</th><th class="num" data-i18n="failedRate">Failed</th>
-            </tr></thead>
-            <tbody id="usageBody"></tbody>
-          </table>
-        </div>
-      </section>
+        </section>
 
-      <section class="card storage-card" id="storageCard" aria-labelledby="storageTitle">
-        <header class="card-head">
-          <div>
-            <h2 id="storageTitle" data-i18n="storageTitle">Storage · /blue/du.j</h2>
-            <p id="storageSummary">—</p>
-            <p class="trend" id="storageTrend"></p>
+        <section class="section" id="storage" aria-labelledby="storageTitle">
+          <header class="sec-head"><h2 id="storageTitle" data-i18n="storageTitle">Storage · /blue/du.j</h2><span class="summary" id="storageSummary">—</span></header>
+          <div class="card">
+            <div class="storage-bar" id="storageBar"></div>
+            <ul class="storage-legend" id="storageLegend"></ul>
+            <p class="fine" id="storageTrend"></p>
+            <div class="chart" id="storageHistory"></div>
+            <details class="optin">
+              <summary data-i18n="optinSummary">Why are some numbers marked ≥ or estimated? Share your exact usage</summary>
+              <p data-i18n="optinBody">Lustre only lets each person read their own quota, so the board estimates other members from a daily scan of their folder. Folders the group cannot read are not counted. Run this once on HiPerGator to share your exact usage, which refreshes every 3 hours:</p>
+              <div class="command"><code id="optinCommand">/blue/du.j/jinjiaguo/duj-github-snapshot/report_storage.sh --install</code><button type="button" class="copy" id="copyCommand" data-i18n="copy">Copy</button></div>
+              <p class="fine" data-i18n="optinUninstall">Stop at any time with --uninstall. Only your total size and file count are shared, never paths.</p>
+            </details>
           </div>
-        </header>
-        <div class="storage-bar" id="storageBar"></div>
-        <div class="chart storage-history" id="storageHistory"></div>
-        <ul class="storage-legend" id="storageLegend"></ul>
-        <details class="optin">
-          <summary data-i18n="optinSummary">Why are some numbers marked ≥ or estimated? Share your exact usage</summary>
-          <p data-i18n="optinBody">Lustre only lets each person read their own quota, so the board estimates other members from a daily scan of their folder. Folders the group cannot read are not counted. Run this once on HiPerGator to share your exact usage, which refreshes every 3 hours:</p>
-          <div class="command"><code id="optinCommand">/blue/du.j/jinjiaguo/duj-github-snapshot/report_storage.sh --install</code><button type="button" class="copy" id="copyCommand" data-i18n="copy">Copy</button></div>
-          <p class="fine" data-i18n="optinUninstall">Stop at any time with --uninstall. Only your total size and file count are shared, never paths.</p>
-        </details>
-      </section>
-    </main>
+        </section>
 
-    <footer>
-      <p data-i18n="footerNote">Public, read-only, cached data. No UF credentials are collected. An independent group dashboard, not an official UF service. Allocation is not utilization.</p>
-      <span id="sourceBadge" class="badge">—</span>
-    </footer>
+        <section class="section" id="about" aria-labelledby="aboutTitle">
+          <header class="sec-head"><h2 id="aboutTitle" data-i18n="aboutTitle">Data &amp; definitions</h2></header>
+          <div class="card"><dl class="defs" id="aboutDefs"></dl></div>
+          <footer><p data-i18n="footerNote">Public, read-only, cached data. No UF credentials are collected. An independent group dashboard, not an official UF service. Allocation is not utilization.</p></footer>
+        </section>
+      </main>
+    </div>
 
     <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
     <noscript>This page requires JavaScript to display the current resource snapshot.</noscript>

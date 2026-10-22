@@ -10,17 +10,17 @@ The board is independent of UF and does not replace Slurm as the source of truth
 
 ## Read-only boundary
 
-The board cannot submit, cancel, requeue, prioritize, or modify any HiPerGator job. It also cannot change accounts, QOS limits, partitions, reservations, or allocations. The collector only reads scheduler information and publishes a bounded snapshot for display.
+The board cannot submit, cancel, requeue, prioritize, or modify any HiPerGator job. It also cannot change accounts, QOS limits, partitions, reservations, or allocations. The collector only reads scheduler information and publishes a bounded snapshot for display. Start estimates come from `sbatch --test-only`, which makes Slurm compute a hypothetical start time without submitting anything.
 
-The public snapshot includes usernames, job names and IDs, requested resources, job states, scheduling windows, and per-member storage totals. It excludes node names, commands, working directories, environment variables, credentials, and unrecognized Slurm fields. No UF password, SSH key, or login session is collected by the website.
+The public snapshot includes usernames, job names and IDs, requested resources, job states, scheduling windows, and per-member storage totals. Other groups' pending demand is published only as per-partition totals (GPUs, cores, job counts), with no users or jobs. It excludes node names, commands, working directories, environment variables, credentials, and unrecognized Slurm fields. No UF password, SSH key, or login session is collected by the website.
 
 ## How it runs
 
 1. HiPerGator Slurm `scrontab` starts `duj-github-snapshot` every five minutes.
 2. Each run requests 1 CPU, 512 MiB (0.5 GiB) of memory, no GPU, and at most two minutes in `hpg-dev`.
-3. The collector reads the `du.j` Slurm queue and QOS, 7-day `sacct` history, per-partition `sinfo` availability, and `/blue/du.j` quotas (about 2–3 s in total), then creates a public `status.json` snapshot (about 20 KB).
+3. The collector reads the `du.j` Slurm queue, the `du.j` and `du.j-b` (burst) QOS, 7-day `sacct` history, per-partition `sinfo` availability and pending demand, `sbatch --test-only` estimates for a few standard requests, and `/blue/du.j` quotas (about 5–7 s in total), then creates a public `status.json` snapshot (about 20 KB).
 4. A repository-scoped GitHub deploy key pushes the snapshot to the `data` branch.
-5. GitHub Pages serves the dashboard from `main`. A visitor's browser checks the snapshot every two minutes and caches the last successful copy.
+5. GitHub Pages serves the dashboard from `main`. The browser checks the snapshot every 60 s with an ETag conditional request: an unchanged snapshot returns 304, which does not count against the unauthenticated API limit of 60 requests per hour per IP. It also checks when the tab becomes visible again, and caches the last successful copy.
 
 The publishing job itself appears briefly in the queue because it is an ordinary Slurm job. It does not run continuously and does not reserve a GPU.
 
@@ -47,81 +47,79 @@ The collector sources are versioned in [`collector/`](collector/) and deployed t
 
 ## Reading the board
 
-### Sync status and source badge
+The sidebar groups sections into Right now / Cluster / Group / Info; on a phone it opens from the menu button.
 
-The header shows the snapshot generation time, not the time when you opened the page. **Live snapshot** means live GitHub data, **Browser cache** means the last successful copy saved by your browser, and **Preview data** is demonstration data rather than the live queue. A delayed or stale badge means the numbers should not be used for scheduling decisions until the feed recovers.
+### Data time
 
-### Resource overview
+The top bar shows when the snapshot was generated (Eastern time), how long ago, and roughly when the next one is published (every five minutes). The badge at the bottom of the sidebar shows the source: **Live snapshot**, **Browser cache** (live endpoint unavailable) or **Preview data**. A snapshot older than 15 minutes shows a delay notice; check HiPerGator directly then.
 
-- **CPU cores, Memory, and GPUs** show resources allocated to running group jobs against the shared QOS ceiling. Each bar is split by member (colors match the member list); the hatched extension is queued demand.
-- **Storage** shows `/blue/du.j` usage against the group quota, split by member and Unattributed.
-- Cards are flagged **Near limit** at 85% and **At limit** when full. The remaining value is QOS headroom, not a promise that physical nodes are immediately available.
+### Available now
 
-Allocation is not utilization. A job may hold four GPUs while using them poorly; this board reports the four allocated GPUs. Use job logs and node-level tools for utilization analysis.
+One card per GPU type plus one for CPU jobs:
 
-### Members
+- **Startable now** = the smaller of the group's free QOS quota and the partition's free capacity minus what is queued ahead of us.
+- **Queued ahead of us**: pending requests on that partition waiting for `Resources`/`Priority` with a priority at least that of a new du.j job (all users, aggregated per partition). Free GPUs that higher-priority requests are already waiting for are not counted as available. A new du.j job's priority is approximated by the lowest priority among the group's current main-QOS jobs.
+- **Max on one node**: the most GPUs a single job can get (one node's free GPUs).
 
-One row per member with running/pending jobs, allocated CPU, memory, and GPU, and storage with its source tag. Click a column header to sort, and click a member to filter the job list to them.
+### Group quota
 
-### Next expected start
+`du.j` (main) and `du.j-b` (burst) are shown separately, each with in use, free and limit, split by member. Pending jobs take nothing until they start.
 
-This panel shows the pending job with the nearest reported estimated start, together with its expected end. Slurm estimates can move when priorities, reservations, dependencies, job durations, or cluster availability change. Treat the countdown as planning guidance, not a reservation guarantee.
+- **du.j**: normal priority; GPU jobs must use this QOS.
+- **du.j-b (burst)**: CPU only (0 GPUs), up to 4 days per job, much lower priority, runs only on spare cluster capacity; it does not count against du.j.
 
-### Queued requests
+The board's own collector jobs (`duj-github-snapshot` and friends) are labeled "Board collector" and attributed to no member.
 
-These totals are the CPU, memory, and GPU capacity requested by pending group jobs. They are demand waiting in line, not resources already consumed. A large queued total suggests more contention and potentially longer waits.
+### Queue
 
-### QOS envelope
+Pending jobs are grouped by why they wait; only the first group competes with new requests:
 
-- **Group TRES** is the reported shared ceiling for CPU, memory, and GPU requests.
-- **Maximum wall time** is the longest permitted requested runtime under the QOS.
-- **Submitted jobs / user** is the reported per-user submission ceiling.
+- **Waiting for resources**: waiting for nodes or quota (`Resources`, `Priority`, `QOSGrp*`, …), plus the currently free slots of throttled arrays.
+- **Array throttle**: waiting on the array's own `%N` limit (`JobArrayTaskLimit`). Such a task starts only when another task of the same array ends, so it takes no extra quota. An `--array=0-413%8` array never runs more than 8 at once; the other few hundred tasks only queue behind each other. Each array is listed with its remaining tasks and concurrency.
+- **Dependency / held / limits**: waiting on another job, held, or over a per-user limit.
+- **Scheduled**: set to start later (`--begin`, scrontab).
 
-Partition policies, reservations, account associations, and physical cluster availability can impose additional constraints, so QOS headroom alone does not guarantee that a new job can start.
+### Partitions
 
-### Cluster right now
+From `sinfo`: physically free GPUs (cores for `hpg-default`) per partition for all users, the most free on one node, nodes up, and the GPUs other users have queued there (and how many of those rank ahead of du.j). Down, drained or maintenance nodes are excluded.
 
-Physically free GPUs (and idle CPU cores on `hpg-default`) per partition across all HiPerGator users, from `sinfo`, aggregated so node names are never published. **Up to N on one node** matters for multi-GPU jobs: a job requesting 8 GPUs on one node cannot use 14 free cards spread two per node. Nodes that are down, draining, or in maintenance are not counted.
+### How soon can I start
 
-### Can my job start?
+For a few standard requests (1× B200 / RTX PRO 6000 / L4, 8 CPU cores, and burst; 4 h each):
 
-Enter a GPU type, GPU count, CPUs, memory, and time. The planner checks, in order: the QOS ceiling and wall-time limit (a request above them never starts), current group headroom (and, if the group is at its limit, when enough would free up if running jobs used their full time limits), group demand already queued, and whether a single node on that partition has enough free GPUs or cores. Inputs are remembered in your browser. It is guidance only; Slurm priority and backfill decide the real order.
+1. **Now** when the group has quota left, a node has enough free, and no higher-priority request is waiting for that capacity.
+2. When the group quota is full: **by** the latest time running jobs reach their time limits and free a slot; earlier if they finish sooner.
+3. When the partition is taken by higher-priority requests: **≈** Slurm's estimate.
 
-The chart below it shows the group's allocated GPUs over the next 24 hours assuming running jobs use their full time limits, so it is a worst case. Jobs usually finish earlier.
+Slurm's estimate (`sbatch --test-only`) assumes every job runs to its limit, so it is a conservative upper bound that can move; it is hidden when a job can start now.
 
-### Jobs
+### Check a request
 
-Identical requests from the same member (for example array tasks) are grouped into one row with a `×N` count; **Show IDs** expands the individual job IDs. Timing shows how long until a running job ends or a pending job is expected to start. Slurm reason codes are translated into plain language; hover to see the original code.
+Given a partition, GPUs, CPU, memory and time, it checks the QOS ceiling and wall-time limit, the group's current headroom (and when enough frees if full), group demand already waiting, whether one node can fit the request, and whether higher-priority requests are queued; CPU-only requests also get a pointer to burst. Inputs are saved in the browser. The chart shows group GPUs over the next 24 h if running jobs use their full limits.
 
-- **Running** means Slurm has allocated the requested resources.
-- **Pending** means the job is waiting; read the detail to understand why.
-- **Scheduled** means a job set to start later (`--begin` or scrontab). It is not counted as queued demand.
-- Times and reasons are snapshots and may change at the next scheduler update.
+### Members and jobs
 
-### Last 7 days
+The member table shows running, waiting and array-queued tasks, GPUs by type, CPU, memory, burst CPU and storage; click a member to filter jobs.
 
-From `sacct`, including finished jobs: the hourly-average GPU (or CPU) in use against the QOS limit, GPU/CPU-hours per day stacked by member, and per-member totals with finished-job count and failure rate (failed, timeout, out-of-memory, or node-fail ÷ finished). Hover the charts for details. Use the GPU/CPU toggle to switch.
+Jobs are split into Running / Waiting / Array throttle / Scheduled & other, with identical requests grouped as `×N`. Running jobs show "ends by X" (start + time limit; they often end earlier); waiting jobs show Slurm's start estimate; throttled array tasks start as their array frees a slot.
 
-### Storage trend
+### Last 7 days, storage
 
-The publisher keeps one storage point every ~6 hours for 90 days on HiPerGator. Once there is about a day of history, the storage panel shows the average growth per day over the last week and the estimated days until the quota is full.
+Unchanged: hourly use from `sacct`, daily GPU/CPU-hours per member with failure rates; `/blue/du.j` usage per member with source tags and growth trend.
 
 ### Links and sharing
 
-Filters are kept in the URL, so a link such as `?member=xianyao.li&filter=pending&lang=zh` opens the same view.
+Filters are kept in the URL, so `?member=xianyao.li&filter=waiting&lang=zh` opens the same view (`filter` is one of `running`, `waiting`, `throttled`, `other`).
 
 ## How to use the information
 
-Before submitting a job:
+1. Check that the data time in the top bar is a few minutes old at most.
+2. In **Available now**, check that the GPU type you need has at least your per-job count startable, and mind **Max on one node**.
+3. If not, **How soon can I start** tells you whether the group quota is full (wait for a group job to end) or the partition is taken by higher-priority requests (see Slurm's estimate, or try another GPU type).
+4. CPU-only jobs up to 4 days can use burst (`--qos=du.j-b`), which takes no group quota.
+5. Throttle large batches with `--array=...%N` to leave quota for others; the board shows array throttling apart from real contention.
 
-1. Confirm that the header says it synced recently and the footer badge says **Live snapshot** and the synchronization time is recent. If it is delayed, check HiPerGator directly.
-2. Compare your CPU, memory, GPU, and wall-time request with the QOS envelope. A request outside those limits needs to be changed before submission.
-3. Look at current allocation and queued demand together. When the relevant resource is near its shared ceiling or already heavily queued, expect a wait and coordinate with the current allocation owners when timing matters.
-4. Check GPU types instead of relying only on the total GPU count when your job requires a specific model.
-5. Use **Can my job start?** and **Next expected start** for rough timing only. Slurm, not the board, makes the final scheduling decision.
-6. Check **Cluster right now** for whether a single node can fit your GPU count.
-
-After submitting, find your job in **Jobs**. Its state and reason are more useful than the aggregate totals for diagnosing that specific job. Use HiPerGator's own commands and documentation when you need authoritative or more detailed information.
+After submitting, find your job in **Jobs**; its state and reason say more than the totals. Use HiPerGator's own commands and documentation for authoritative information.
 
 ## License
 
